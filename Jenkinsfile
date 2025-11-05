@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // Nom du canal Slack (à adapter si besoin)
-        SLACK_CHANNEL = '#jenkins-builds'
+        SLACK_CHANNEL = '#violette'
         // URL du job Jenkins (automatiquement injectée)
         BUILD_URL = "${env.BUILD_URL}"
     }
@@ -72,3 +72,4 @@ pipeline {
         }
     }
 }
+
