@@ -9,7 +9,7 @@ pipeline {
     
     environment {
         SLACK_CHANNEL = '#purple'
-        BUILD_URL = env.BUILD_URL
+        BUILD_URL = "${env.BUILD_URL"
     }
     
     stages {
