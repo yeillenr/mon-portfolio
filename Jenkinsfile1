@@ -5,24 +5,31 @@ pipeline {
         SLACK_CHANNEL = '#purple'
     }
     
+    // SOLUTION: Utiliser le polling SCM à la place des webhooks
     triggers {
-        githubPush()
-        pollSCM('H/5 * * * *')
+        // Vérifie les changements toutes les 1 minute
+        pollSCM('* * * * *')
     }
     
     stages {
-        stage('Clone') {
+        stage('Détection Commit') {
             steps {
                 script {
+                    // Récupérer les infos du commit
+                    def commitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                    def commitMessage = sh(script: 'git log -1 --pretty=%B', returnStdout: true).trim()
+                    def author = sh(script: 'git log -1 --pretty=%an', returnStdout: true).trim()
+                    
                     slackSend(
                         channel: "${env.SLACK_CHANNEL}",
                         color: "good",
-                        message: "🚀 Début du pipeline - Build #${env.BUILD_NUMBER}\nBranch: dev\nRepository: mon-portfolio"
+                        message: """🚀 NOUVEAU COMMIT DÉTECTÉ - Build #${env.BUILD_NUMBER}
+📝 Message: ${commitMessage}
+👤 Auteur: ${author}
+🔗 Commit: ${commitHash}
+🌿 Branch: ${env.GIT_BRANCH}"""
                     )
                 }
-                
-                echo "Code déjà cloné par SCM, préparation du build..."
-                // Le code est automatiquement cloné par Jenkins au début
             }
         }
         
@@ -36,61 +43,29 @@ pipeline {
                     )
                 }
                 
-                echo "Building application..."
+                echo "Construction en cours..."
                 
-                // SOLUTION : Vérifier le type de projet et adapter les commandes
                 script {
-                    // Vérifier si c'est un projet Node.js
                     if (fileExists('package.json')) {
                         echo "Projet Node.js détecté"
-                        sh 'npm install'
-                        sh 'npm run build'
-                    }
-                    // Vérifier si c'est un projet Maven
-                    else if (fileExists('pom.xml')) {
-                        echo "Projet Maven détecté"
-                        // Installer Maven temporairement ou utiliser un agent avec Maven
-                        sh '''
-                            which mvn || echo "Maven non installé"
-                            # Solution temporaire - installation de Maven
-                            wget https://archive.apache.org/dist/maven/maven-3/3.8.6/binaries/apache-maven-3.8.6-bin.tar.gz
-                            tar -xzf apache-maven-3.8.6-bin.tar.gz
-                            ./apache-maven-3.8.6/bin/mvn clean compile
-                        '''
-                    }
-                    else {
-                        echo "Aucun fichier de build détecté, build simulé"
-                        sh 'echo "Build simulé réussi" > build.log'
-                        sh 'ls -la'
+                        sh 'npm install && npm run build'
+                    } else {
+                        echo "Build simulé"
+                        sh 'echo "Build réussi" > build.log'
                     }
                 }
                 
                 script {
                     slackSend(
                         channel: "${env.SLACK_CHANNEL}",
-                        color: "good",
+                        color: "good", 
                         message: "✅ BUILD réussi - Build #${env.BUILD_NUMBER}"
                     )
-                }
-            }
-            
-            post {
-                failure {
-                    script {
-                        slackSend(
-                            channel: "${env.SLACK_CHANNEL}",
-                            color: "danger",
-                            message: "❌ Échec BUILD - Build #${env.BUILD_NUMBER}\nErreur: Commande de build non trouvée"
-                        )
-                    }
                 }
             }
         }
         
         stage('Deploy') {
-            when {
-                expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
-            }
             steps {
                 script {
                     slackSend(
@@ -100,55 +75,16 @@ pipeline {
                     )
                 }
                 
-                echo "Deploying application..."
-                
-                // Adaptez selon votre méthode de déploiement
-                script {
-                    if (fileExists('build')) {
-                        echo "Déploiement des fichiers de build"
-                        sh 'ls -la build/ || ls -la'
-                    } else {
-                        echo "Déploiement simulé"
-                        sh 'echo "Déploiement réussi" > deploy.log'
-                    }
-                }
+                echo "Déploiement en cours..."
+                sh 'echo "Déploiement réussi" > deploy.log'
                 
                 script {
                     slackSend(
                         channel: "${env.SLACK_CHANNEL}",
                         color: "good",
-                        message: "✅ DEPLOIEMENT réussi - Build #${env.BUILD_NUMBER}"
+                        message: "✅ DEPLOIEMENT terminé - Build #${env.BUILD_NUMBER}"
                     )
                 }
-            }
-            
-            post {
-                failure {
-                    script {
-                        slackSend(
-                            channel: "${env.SLACK_CHANNEL}",
-                            color: "danger",
-                            message: "❌ Échec DEPLOIEMENT - Build #${env.BUILD_NUMBER}"
-                        )
-                    }
-                }
-            }
-        }
-    }
-    
-    post {
-        always {
-            script {
-                def color = currentBuild.result == 'SUCCESS' ? "good" : "danger"
-                def message = currentBuild.result == 'SUCCESS' ? 
-                    "📊 PIPELINE RÉUSSI - Build #${env.BUILD_NUMBER}" :
-                    "📊 PIPELINE ÉCHOUÉ - Build #${env.BUILD_NUMBER}"
-                
-                slackSend(
-                    channel: "${env.SLACK_CHANNEL}",
-                    color: color,
-                    message: "${message}\nDurée: ${currentBuild.durationString}\nDétails: ${env.BUILD_URL}"
-                )
             }
         }
     }
