@@ -38,7 +38,7 @@ pipeline {
         stage('Clone') {
             steps {
                 script {
-                    slackSend channel: ${env.SLACK_CHANNEL}, 
+                    slackSend channel: "${env.SLACK_CHANNEL}", 
                              color: 'good', 
                              message: "🚀 Début du pipeline - Build #${env.BUILD_NUMBER}\nBranche: ${env.GIT_BRANCH}"
                     
@@ -51,12 +51,12 @@ pipeline {
             }
             post {
                 success {
-                    slackSend channel: ${env.SLACK_CHANNEL}, 
+                    slackSend channel: "${env.SLACK_CHANNEL}", 
                              color: 'good', 
                              message: "✅ Stage CLONE réussi\nRepository: mon-portfolio\nCommit: ${sh(script: 'git log -1 --oneline', returnStdout: true).trim()}"
                 }
                 failure {
-                    slackSend channel:${env.SLACK_CHANNEL}, 
+                    slackSend channel:"${env.SLACK_CHANNEL}", 
                              color: 'danger', 
                              message: "❌ Échec du stage CLONE\nErreur: Impossible de cloner le dépôt"
                 }
@@ -72,12 +72,12 @@ pipeline {
                 }
                 post {
                     success {
-                        slackSend channel: ${env.SLACK_CHANNEL}, 
+                        slackSend channel: "${env.SLACK_CHANNEL}", 
                                  color: 'good', 
                                  message: "✅ Stage BUILD réussi\nImage: ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}"
                     }
                     failure {
-                        slackSend channel: env.SLACK_CHANNEL, 
+                        slackSend channel: "${env.SLACK_CHANNEL}", 
                                  color: 'danger', 
                                  message: "❌ Échec du stage BUILD\nErreur: Échec de la construction Docker"
                     }
@@ -102,17 +102,17 @@ pipeline {
                     sleep 5
                     
                     // Test du déploiement
-                    sh "curl -f http://localhost:8080 || exit 1"
+                    sh "curl -f http://localhost:8060 || exit 1"
                 }
             }
             post {
                 success {
-                    slackSend channel: ${env.SLACK_CHANNEL}, 
+                    slackSend channel: "${env.SLACK_CHANNEL}", 
                              color: 'good', 
-                             message: "✅ Stage DEPLOY réussi\nPortfolio déployé: http://localhost:8080\nConteneur: portfolio-dev"
+                             message: "✅ Stage DEPLOY réussi\nPortfolio déployé: http://localhost:8060\nConteneur: portfolio-dev"
                 }
                 failure {
-                    slackSend channel: ${env.SLACK_CHANNEL}, 
+                    slackSend channel: "${env.SLACK_CHANNEL}", 
                              color: 'danger', 
                              message: "❌ Échec du stage DEPLOY\nErreur: Impossible de déployer le portfolio"
                     
@@ -132,15 +132,15 @@ pipeline {
             // Notification globale du statut du pipeline
             script {
                 if (currentBuild.result == 'SUCCESS') {
-                    slackSend channel: ${env.SLACK_CHANNEL}, 
+                    slackSend channel: "${env.SLACK_CHANNEL}", 
                              color: 'good', 
                              message: "🎉 Pipeline TERMINÉ - Build #${env.BUILD_NUMBER} réussi\nDétails: ${env.BUILD_URL}"
                 } else if (currentBuild.result == 'FAILURE') {
-                    slackSend channel: ${env.SLACK_CHANNEL}, 
+                    slackSend channel: "${env.SLACK_CHANNEL}", 
                              color: 'danger', 
                              message: "💥 Pipeline ÉCHOUÉ - Build #${env.BUILD_NUMBER} en échec\nDétails: ${env.BUILD_URL}"
                 } else {
-                    slackSend channel: ${env.SLACK_CHANNEL}, 
+                    slackSend channel: "${env.SLACK_CHANNEL}", 
                              color: 'warning', 
                              message: "⚠️ Pipeline Terminé - Build #${env.BUILD_NUMBER} avec statut: ${currentBuild.result}\nDétails: ${env.BUILD_URL}"
                 }
