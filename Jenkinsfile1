@@ -1,0 +1,129 @@
+pipeline {
+    agent any
+    
+    triggers {
+        pollSCM('H/5 * * * *') // Vérifie les changements toutes les 5 minutes
+        // OU pour webhook GitHub :
+        // github(triggerOnPush: true, branchFilter: 'dev')
+    }
+    
+    environment {
+        SLACK_CHANNEL = '#purple'
+        BUILD_URL = env.BUILD_URL
+    }
+    
+    stages {
+        stage('Clone') {
+            steps {
+                script {
+                    slackSend(
+                        channel: "${SLACK_CHANNEL}",
+                        color: "good",
+                        message: "🚀 Début du pipeline - Build #${BUILD_NUMBER}\nBranch: ${env.GIT_BRANCH}\nCommit: ${env.GIT_COMMIT}"
+                    )
+                }
+                
+                echo "Cloning repository from branch dev..."
+                git branch: 'dev', 
+                    url: 'https://github.com/yeillenr/mon-portfolio',
+                    credentialsId: 'tokengit'
+                
+                script {
+                    slackSend(
+                        channel: "${SLACK_CHANNEL}",
+                        color: "good",
+                        message: "✅ Étape CLONE terminée - Build #${BUILD_NUMBER}"
+                    )
+                }
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                script {
+                    slackSend(
+                        channel: "${SLACK_CHANNEL}",
+                        color: "warning",
+                        message: "🔨 Début de l'étape BUILD - Build #${BUILD_NUMBER}"
+                    )
+                }
+                
+                echo "Building application..."
+                // Adaptez selon votre technologie
+                sh 'mvn clean compile'
+                // ou sh 'npm install'
+                // ou sh 'docker build -t votre-app .'
+                
+                script {
+                    slackSend(
+                        channel: "${SLACK_CHANNEL}",
+                        color: "good",
+                        message: "✅ Étape BUILD terminée - Build #${BUILD_NUMBER}"
+                    )
+                }
+            }
+            
+            post {
+                failure {
+                    script {
+                        slackSend(
+                            channel: "${SLACK_CHANNEL}",
+                            color: "danger",
+                            message: "❌ Échec BUILD - Build #${BUILD_NUMBER}\nErreur: ${currentBuild.result}"
+                        )
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy') {
+            steps {
+                script {
+                    slackSend(
+                        channel: "${SLACK_CHANNEL}",
+                        color: "warning",
+                        message: "🚀 Début du DEPLOIEMENT - Build #${BUILD_NUMBER}"
+                    )
+                }
+                
+                echo "Deploying to environment..."
+                // Adaptez selon votre méthode de déploiement
+                sh 'mvn deploy'
+                // ou sh 'kubectl apply -f deployment.yaml'
+                // ou sh 'scp target/app.ws user@server:/path'
+                
+                script {
+                    slackSend(
+                        channel: "${SLACK_CHANNEL}",
+                        color: "good",
+                        message: "✅ DÉPLOIEMENT RÉUSSI - Build #${BUILD_NUMBER}\nApplication déployée avec succès!"
+                    )
+                }
+            }
+            
+            post {
+                failure {
+                    script {
+                        slackSend(
+                            channel: "${SLACK_CHANNEL}",
+                            color: "danger",
+                            message: "❌ Échec DEPLOIEMENT - Build #${BUILD_NUMBER}\nErreur: ${currentBuild.result}"
+                        )
+                    }
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            script {
+                slackSend(
+                    channel: "${SLACK_CHANNEL}",
+                    color: currentBuild.result == 'SUCCESS' ? "good" : "danger",
+                    message: "📊 Résultat final - Build #${BUILD_NUMBER}: ${currentBuild.result}\nDurée: ${currentBuild.durationString}\nVoir les détails: ${BUILD_URL}"
+                )
+            }
+        }
+    }
+}
