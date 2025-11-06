@@ -3,6 +3,8 @@ pipeline {
     
     environment {
         SLACK_CHANNEL = '#purple'
+        DOCKER_IMAGE = 'portfolio'
+        DOCKER_TAG = "dev-${env.BUILD_NUMBER}"
     }
     
     // SOLUTION: Utiliser le polling SCM à la place des webhooks
@@ -32,58 +34,115 @@ pipeline {
                 }
             }
         }
-        
-        stage('Build') {
+
+        stage('Clone') {
             steps {
                 script {
-                    slackSend(
-                        channel: "${env.SLACK_CHANNEL}",
-                        color: "warning",
-                        message: "🔨 Début BUILD - Build #${env.BUILD_NUMBER}"
+                    slackSend channel: ${env.SLACK_CHANNEL}, 
+                             color: 'good', 
+                             message: "🚀 Début du pipeline - Build #${env.BUILD_NUMBER}\nBranche: ${env.GIT_BRANCH}"
+                    
+                    echo "Clonage du dépôt de la branche dev..."
+                    checkout scmGit(
+                        branches: [[name: 'dev']],
+                        userRemoteConfigs: [[url: 'https://github.com/yeillenr/mon-portfolio.git']]
                     )
                 }
-                
-                echo "Construction en cours..."
-                
-                script {
-                    if (fileExists('package.json')) {
-                        echo "Projet Node.js détecté"
-                        sh 'npm install && npm run build'
-                    } else {
-                        echo "Build simulé"
-                        sh 'echo "Build réussi" > build.log'
-                    }
+            }
+            post {
+                success {
+                    slackSend channel: ${env.SLACK_CHANNEL}, 
+                             color: 'good', 
+                             message: "✅ Stage CLONE réussi\nRepository: mon-portfolio\nCommit: ${sh(script: 'git log -1 --oneline', returnStdout: true).trim()}"
                 }
-                
-                script {
-                    slackSend(
-                        channel: "${env.SLACK_CHANNEL}",
-                        color: "good", 
-                        message: "✅ BUILD réussi - Build #${env.BUILD_NUMBER}"
-                    )
+                failure {
+                    slackSend channel:${env.SLACK_CHANNEL}, 
+                             color: 'danger', 
+                             message: "❌ Échec du stage CLONE\nErreur: Impossible de cloner le dépôt"
                 }
             }
         }
         
+        stage('Build') {
+            steps {
+                script {
+                     echo "Construction de l'image Docker du portfolio..."
+                    // Build de l'image Docker à partir du Dockerfile présent dans le dépôt
+                    docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}")
+                }
+                post {
+                    success {
+                        slackSend channel: ${env.SLACK_CHANNEL}, 
+                                 color: 'good', 
+                                 message: "✅ Stage BUILD réussi\nImage: ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}"
+                    }
+                    failure {
+                        slackSend channel: env.SLACK_CHANNEL, 
+                                 color: 'danger', 
+                                 message: "❌ Échec du stage BUILD\nErreur: Échec de la construction Docker"
+                    }
+                }
+            }
+        
         stage('Deploy') {
             steps {
                 script {
-                    slackSend(
-                        channel: "${env.SLACK_CHANNEL}",
-                        color: "warning",
-                        message: "🚀 Début DEPLOIEMENT - Build #${env.BUILD_NUMBER}"
-                    )
+                    echo "Déploiement du portfolio..."
+                    
+                    // Arrêter et supprimer l'ancien conteneur s'il existe
+                    sh '''
+                        docker stop portfolio-dev || true
+                        docker rm portfolio-dev || true
+                    '''
+                    
+                    // Lancer le nouveau conteneur
+                    sh "docker run -d --name portfolio-dev -p 8080:80 ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}"
+                    
+                    // Attendre que l'application soit prête
+                    sleep 5
+                    
+                    // Test du déploiement
+                    sh "curl -f http://localhost:8080 || exit 1"
                 }
-                
-                echo "Déploiement en cours..."
-                sh 'echo "Déploiement réussi" > deploy.log'
-                
-                script {
-                    slackSend(
-                        channel: "${env.SLACK_CHANNEL}",
-                        color: "good",
-                        message: "✅ DEPLOIEMENT terminé - Build #${env.BUILD_NUMBER}"
-                    )
+            }
+            post {
+                success {
+                    slackSend channel: ${env.SLACK_CHANNEL}, 
+                             color: 'good', 
+                             message: "✅ Stage DEPLOY réussi\nPortfolio déployé: http://localhost:8080\nConteneur: portfolio-dev"
+                }
+                failure {
+                    slackSend channel: ${env.SLACK_CHANNEL}, 
+                             color: 'danger', 
+                             message: "❌ Échec du stage DEPLOY\nErreur: Impossible de déployer le portfolio"
+                    
+                    // Nettoyage en cas d'échec
+                    sh '''
+                        docker stop portfolio-dev || true
+                        docker rm portfolio-dev || true
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline terminé - Résultat: ${currentBuild.result}"
+            // Notification globale du statut du pipeline
+            script {
+                if (currentBuild.result == 'SUCCESS') {
+                    slackSend channel: ${env.SLACK_CHANNEL}, 
+                             color: 'good', 
+                             message: "🎉 Pipeline TERMINÉ - Build #${env.BUILD_NUMBER} réussi\nDétails: ${env.BUILD_URL}"
+                } else if (currentBuild.result == 'FAILURE') {
+                    slackSend channel: ${env.SLACK_CHANNEL}, 
+                             color: 'danger', 
+                             message: "💥 Pipeline ÉCHOUÉ - Build #${env.BUILD_NUMBER} en échec\nDétails: ${env.BUILD_URL}"
+                } else {
+                    slackSend channel: ${env.SLACK_CHANNEL}, 
+                             color: 'warning', 
+                             message: "⚠️ Pipeline Terminé - Build #${env.BUILD_NUMBER} avec statut: ${currentBuild.result}\nDétails: ${env.BUILD_URL}"
                 }
             }
         }
