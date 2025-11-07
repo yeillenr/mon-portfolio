@@ -5,7 +5,7 @@ pipeline {
         SLACK_CHANNEL = '#purple'
         DOCKER_IMAGE = 'portfolio'
         DOCKER_TAG = "dev-${env.BUILD_NUMBER}"
-        DEPLOY_PORT = '8060'  // J'ai remarqué une incohérence de ports
+        DEPLOY_PORT = '8060'  
     }
     
     triggers {
@@ -44,7 +44,6 @@ pipeline {
                     echo "Clonage du dépôt de la branche dev..."
                     // Le checkout est déjà fait automatiquement par Jenkins, on vérifie juste
                     sh 'git status'
-                    sh 'ls -la'
                 }
             }
             post {
@@ -53,7 +52,7 @@ pipeline {
                         def commitInfo = sh(script: 'git log -1 --oneline', returnStdout: true).trim()
                         slackSend channel: "${env.SLACK_CHANNEL}", 
                                  color: 'good', 
-                                 message: "✅ CLONE RÉUSSI\nRepository: mon-portfolio\nCommit: ${commitInfo}"
+                                 message: "✅ CLONE RÉUSSI\nRepository: mon-portfolio"
                     }
                 }
                 failure {
@@ -76,7 +75,7 @@ pipeline {
                 success {
                     script {
                         def imageSize = sh(
-                            script: "docker images ${env.DOCKER_IMAGE}:${env.DOCKER_TAG} --format '{{.Size}}'", 
+                            script: "docker images ${env.DOCKER_IMAGE}:${env.DOCKER_TAG} ", 
                             returnStdout: true
                         ).trim()
                         
