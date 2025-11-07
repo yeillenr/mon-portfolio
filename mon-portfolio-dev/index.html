@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio - Yeillen-Rose</title>
+  <link href="style.css" rel="stylesheet">
+  
+</head>
+<body>
+
+  <header>
+    <h1>Yeillen-Rose</h1>
+    <nav>
+      <a href="#about">À propos</a>
+      <a href="#skills">Compétences</a>
+      <a href="#projects">Projets</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h2>Bonjour, je suis Mbounja Michaëlla Yeillen-Rose </h2>
+    <p>Développeuse passionnée, j’aime concevoir des sites web élégants, intuitifs et accessibles à tous.</p>
+    <button onclick="document.querySelector('#projects').scrollIntoView({behavior:'smooth'})">Voir mes projets</button>
+  </section>
+
+  <section id="about" class="about">
+    <img src="https://via.placeholder.com/200" alt="Photo de profil">
+    <div>
+      <h2>À propos</h2>
+      <p>Je suis une développeuse orientée design et performance. J’aime comprendre les besoins des utilisateurs et créer des solutions web simples, efficaces et esthétiques.</p>
+    </div>
+  </section>
+
+  <section id="skills">
+    <h2>Compétences</h2>
+    <div class="skills-list">
+      <div class="skill"> Java / Spring Boot</div>
+      <div class="skill"> HTML / CSS / React.js</div>
+      <div class="skill"> Figma / UI Design</div>
+      <div class="skill"> Gestion de projets</div>
+    </div>
+  </section>
+
+  <section id="projects">
+    <h2>Projets récents</h2>
+    <div class="projects">
+      <div class="project">
+        <img src="https://via.placeholder.com/400x200" alt="Projet 1">
+        <div>
+          <h3>Gestion de Freelances</h3>
+          <p>Application Spring Boot + Thymeleaf pour gérer freelances, contrats et paiements.</p>
+        </div>
+      </div>
+      <div class="project">
+        <img src="https://via.placeholder.com/400x200" alt="Projet 2">
+        <div>
+          <h3>Planificateur de repas</h3>
+          <p>Application React + Firebase pour planifier les repas et générer la liste du marché.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <h2>Contact</h2>
+    <form onsubmit="sendMessage(event)">
+      <input type="text" placeholder="Votre nom" required>
+      <input type="email" placeholder="Votre email" required>
+      <textarea rows="5" placeholder="Votre message..." required></textarea>
+      <button type="submit">Envoyer</button>
+    </form>
+  </section>
+
+  <footer>
+    © 2025 Yeillen-Rose — Tous droits réservés
+  </footer>
+
+  <script>
+    function sendMessage(e) {
+      e.preventDefault();
+      alert("Merci pour votre message 💌");
+      e.target.reset();
+    }
+  </script>
+
+</body>
+</html>
+
+
+
