@@ -104,7 +104,7 @@ pipeline {
                 script {
                     echo "📤 Push de l'image Docker vers Docker Hub..."
 
-                    withCredentials([file(credentialsId: 'docker-config', variable: 'DOCKER_CONFIG_FILE')]) {
+                    withCredentials([file(credentialsId: 'token-dockerhub', variable: 'DOCKER_CONFIG_FILE')]) {
                         sh '''
                             echo "Copie du fichier Docker config..."
                             mkdir -p ~/.docker
