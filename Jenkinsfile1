@@ -4,7 +4,7 @@ pipeline {
     environment {
         SLACK_CHANNEL = '#purple'
         DOCKER_IMAGE = 'portfolio'
-        DOCKER_TAG = "dev-${env.BUILD_NUMBER}"
+        DOCKER_TAG = "build-${env.BUILD_NUMBER}"
         DEPLOY_PORT = '8060'  
     }
     
@@ -67,21 +67,25 @@ pipeline {
             steps {
                 script {
                     echo "🔨 Construction de l'image Docker du portfolio..."           
-                    // Build de l'image Docker
-                    docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG} ", "-f Dockerfile.txt ." )
+                    sh '''
+                        docker system prune -f || true
+                    
+                    docker build -t ${env.DOCKER_IMAGE}:${env.DOCKER_TAG} -f Dockerfile.txt .
+                    docker tag ${env.DOCKER_IMAGE}:latest ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}
+                    '''
                 }
             }
             post {
                 success {
                     script {
                         def imageSize = sh(
-                            script: "docker images ${env.DOCKER_IMAGE}:${env.DOCKER_TAG} ", 
+                            script: "docker images ${env.DOCKER_IMAGE}:latest --format '{{.Size}}'", 
                             returnStdout: true
                         ).trim()
                         
                         slackSend channel: "${env.SLACK_CHANNEL}", 
                                  color: 'good', 
-                                 message: "✅ BUILD RÉUSSI\nImage: ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}\nTaille: ${imageSize}"
+                                 message: "✅ BUILD RÉUSSI\nImage: ${env.DOCKER_IMAGE}:latest\nTaille: ${imageSize}"
                     }
                 }
                 failure {
