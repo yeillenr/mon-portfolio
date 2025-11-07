@@ -64,37 +64,41 @@ pipeline {
         }
         
         stage('Build') {
-            steps {
-                script {
-                    echo "🔨 Construction de l'image Docker du portfolio..."           
-                    sh '''
-                        docker system prune -f || true
-                    
-                    docker build -t ${env.DOCKER_IMAGE}:${env.DOCKER_TAG} -f Dockerfile.txt .
-                    docker tag ${env.DOCKER_IMAGE}:latest ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}
-                    '''
-                }
-            }
-            post {
-                success {
-                    script {
-                        def imageSize = sh(
-                            script: "docker images ${env.DOCKER_IMAGE}:latest --format '{{.Size}}'", 
-                            returnStdout: true
-                        ).trim()
-                        
-                        slackSend channel: "${env.SLACK_CHANNEL}", 
-                                 color: 'good', 
-                                 message: "✅ BUILD RÉUSSI\nImage: ${env.DOCKER_IMAGE}:latest\nTaille: ${imageSize}"
-                    }
-                }
-                failure {
-                    slackSend channel: "${env.SLACK_CHANNEL}", 
-                             color: 'danger', 
-                             message: "❌ ÉCHEC DU BUILD\nErreur lors de la construction Docker"
-                }
+    steps {
+        script {
+            echo "🔨 Construction de l'image Docker du portfolio..."
+
+            // Copie du Dockerfile depuis ton projet pour éviter les confusions
+            sh 'cp Dockerfile.txt Dockerfile'
+
+            // Construction de l’image sans utiliser de prune/rm agressif
+            sh """
+                docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} -f Dockerfile .
+                docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
+            """
+        }
+    }
+    post {
+        success {
+            script {
+                def imageSize = sh(
+                    script: "docker images ${DOCKER_IMAGE}:latest --format '{{.Size}}'",
+                    returnStdout: true
+                ).trim()
+
+                slackSend channel: "${SLACK_CHANNEL}",
+                    color: 'good',
+                    message: "✅ BUILD RÉUSSI\nImage: ${DOCKER_IMAGE}:latest\nTaille: ${imageSize}"
             }
         }
+        failure {
+            slackSend channel: "${SLACK_CHANNEL}",
+                color: 'danger',
+                message: "❌ ÉCHEC DU BUILD\nErreur lors de la construction Docker"
+        }
+    }
+        }
+
         
         stage('Deploy') {
             steps {
