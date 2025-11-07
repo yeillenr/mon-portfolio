@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         SLACK_CHANNEL = '#purple'
-        DOCKER_IMAGE = 'portfolio'
+        DOCKER_IMAGE = 'yersmi13/mon-portfolio'
         DOCKER_TAG = "build-${env.BUILD_NUMBER}"
         DEPLOY_PORT = '8060'  
     }
@@ -25,10 +25,10 @@ pipeline {
                         channel: "${env.SLACK_CHANNEL}",
                         color: "good",
                         message: """🚀 NOUVEAU COMMIT DÉTECTÉ - Build #${env.BUILD_NUMBER}
-📝 Message: ${commitMessage}
-👤 Auteur: ${author}
-🔗 Commit: ${commitHash}
-🌿 Branch: ${env.GIT_BRANCH}"""
+                        📝 Message: ${commitMessage}
+                        👤 Auteur: ${author}
+                        🔗 Commit: ${commitHash}
+                        🌿 Branch: ${env.GIT_BRANCH}"""
                     )
                 }
             }
@@ -99,7 +99,40 @@ pipeline {
     }
         }
 
-        
+        stage('Push DockerHub') {
+            steps {
+                script {
+                    echo "📤 Push de l'image Docker vers Docker Hub..."
+
+                    withCredentials([file(credentialsId: 'docker-config', variable: 'DOCKER_CONFIG_FILE')]) {
+                        sh '''
+                            echo "Copie du fichier Docker config..."
+                            mkdir -p ~/.docker
+                            cp $DOCKER_CONFIG_FILE ~/.docker/config.json
+
+                            echo "Connexion via le fichier Docker config..."
+                            docker login > /dev/null 2>&1 || true
+
+                            echo "Push de l'image sur Docker Hub..."
+                            docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
+                            docker push ${DOCKER_IMAGE}:latest
+                        '''
+                    }
+                }
+            }
+            post {
+                success {
+                    slackSend channel: "${SLACK_CHANNEL}",
+                        color: 'good',
+                        message: "✅ IMAGE PUSHÉE SUR DOCKER HUB\nImage: ${DOCKER_IMAGE}:${DOCKER_TAG}\nLien: https://hub.docker.com/r/yeillenr/portfolio"
+                }
+                failure {
+                    slackSend channel: "${SLACK_CHANNEL}",
+                        color: 'danger',
+                        message: "❌ ÉCHEC DU PUSH DOCKER HUB\nVérifie ton fichier secret ou ta connexion"
+                }
+            }
+        }
         stage('Deploy') {
             steps {
                 script {
