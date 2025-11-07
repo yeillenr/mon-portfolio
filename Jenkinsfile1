@@ -68,7 +68,7 @@ pipeline {
                 script {
                     echo "🔨 Construction de l'image Docker du portfolio..."           
                     // Build de l'image Docker
-                    docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG} "-f Dockerfile.txt ." ")
+                    docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG} , "-f Dockerfile.txt ." ")
                 }
             }
             post {
