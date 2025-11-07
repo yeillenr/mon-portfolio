@@ -67,25 +67,9 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    echo "🔨 Construction de l'image Docker du portfolio..."
-                    
-                    // Vérifier que le Dockerfile existe à la racine du repo
-                    sh '''
-                        echo "Vérification du Dockerfile dans le répertoire courant..."
-                        if [ -f "./Dockerfile" ]; then
-                            echo "✅ Dockerfile trouvé à la racine"
-                        elif [ -f "./mon-portfolio-dev/Dockerfile" ]; then
-                            echo "✅ Dockerfile trouvé dans le dossier ./mon-portfolio-dev"
-                            cd portfolio
-                        else
-                            echo "❌ Aucun Dockerfile trouvé dans le projet"
-                            exit 1
-                        fi
-                    '''
-
-                    
+                    echo "🔨 Construction de l'image Docker du portfolio..."           
                     // Build de l'image Docker
-                    docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG} "-f Dockerfile.txt .")
+                    docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG} "-f Dockerfile.txt ." ")
                 }
             }
             post {
