@@ -85,7 +85,7 @@ pipeline {
 
                     
                     // Build de l'image Docker
-                    docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}")
+                    docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG} "-f Dockerfile.txt .")
                 }
             }
             post {
